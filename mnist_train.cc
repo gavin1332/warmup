@@ -121,6 +121,7 @@ void read_Mnist_Images(std::string filename, std::vector<std::vector<float>>&ima
 	}
 }
 
+//train model thread
 void ThreadedRunTrain(
     const std::unique_ptr<paddle::framework::ProgramDesc>& train_program,
     paddle::framework::Executor* executor, 
@@ -155,7 +156,6 @@ void ThreadedRunTrain(
       y_data[i] = static_cast<int64_t>(labels[index]);
    }
    executor->Run(*train_program, &copy_scope, 0, false, true);
-
    /* for(auto& op_desc : train_program->Block(0).AllOps()){
         auto op =paddle::framework:: OpRegistry::CreateOp(*op_desc);
            op->Run(copy_scope,paddle::platform::CPUPlace());
@@ -166,6 +166,7 @@ void ThreadedRunTrain(
   }
 }
 
+//save model and params
 void SaveModel(const std::string &dir,
               std::unique_ptr<paddle::framework::ProgramDesc>& train_program,
               paddle::framework::Scope* scope
@@ -176,16 +177,15 @@ void SaveModel(const std::string &dir,
   outfile.open(model_name, std::ios::out | std::ios::binary);
   std::string prog_desc = train_program->Proto()->SerializeAsString();;
   outfile << prog_desc;
-  // save params
-  /* 
+ 
+ // save params 
   paddle::framework::ProgramDesc save_program;
   auto *save_block = save_program.MutableBlock(0);
-  save_block->AppendOp();
   const paddle::framework::ProgramDesc &main_program = *train_program;
   const paddle::framework::BlockDesc &global_block = main_program.Block(0);
   std::vector<std::string> save_var_list;
   for (paddle::framework::VarDesc *var : global_block.AllVars()) {
-    // if (IsPersistable(var)) {
+    if (var->Persistable()) {
       paddle::framework::VarDesc *new_var = save_block->Var(var->Name());
       new_var->SetShape(var->GetShape());
       new_var->SetDataType(var->GetDataType());
@@ -194,21 +194,25 @@ void SaveModel(const std::string &dir,
       new_var->SetPersistable(true);
 
       save_var_list.push_back(new_var->Name());
-    // }
-  //  std::cout << var->Name() << std::endl;
+     }
+   std::cout << var->Name() << std::endl;
   }
 
+ // paddle::platform::CPUPlace place;
+ // paddle::framework::Executor exe(place);
+ // exe.Run(save_program, scope, 0);
+
   std::sort(save_var_list.begin(), save_var_list.end());
- // save_block->AppendOp();
   auto *op = save_block->AppendOp();
   op->SetType("save_combine");
   op->SetInput("X", save_var_list);
   op->SetAttr("file_path", dir + "/params");
   op->CheckAttrs();
-
   paddle::platform::CPUPlace place;
   paddle::framework::Executor exe(place);
-  exe.Run(save_program, scope, 0, true, true);  */
+  
+  auto op2 =paddle::framework:: OpRegistry::CreateOp(*op);
+  op2->Run(*scope,paddle::platform::CPUPlace());
 }
 
 int main() {

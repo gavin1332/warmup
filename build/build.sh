@@ -5,6 +5,7 @@ rm ./main_program
 rm ./CMakeCache.txt
 rm ./cmake_install.cmake
 rm -rf ./CMakeFiles
+rm -rf ./breakpoint
 
 mkdir breakpoint
 # PADDLE_LIB is the same with FLUID_INSTALL_DIR when building the lib
