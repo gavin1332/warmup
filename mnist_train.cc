@@ -17,7 +17,7 @@
 #include "paddle/fluid/platform/place.h"
 #include "paddle/fluid/platform/profiler.h"
 
-static const int num_threads = 2;
+static const int num_threads = 3;
 
 namespace paddle {
 namespace train {
@@ -147,7 +147,7 @@ void ThreadedRunTrain(
   y_tensor->Resize({batch_size, 1});
   auto y_data = y_tensor->mutable_data<int64_t>(paddle::platform::CPUPlace());
   //set X Y value
-  for(int epoch = thread_id; epoch < 2 * num_threads;epoch += num_threads){
+  for(int epoch = thread_id; epoch < 100 * num_threads;epoch += num_threads){
     for(int i = 0;i < batch_size; ++i){
         int index = (i + epoch * batch_size) % labels.size();
         for(int j = 0;j < image_size; ++j){
