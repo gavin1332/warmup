@@ -1,13 +1,11 @@
 PADDLE_LIB=~/workroot/paddle_api
-rm ./demo_trainer
-rm ./startup_program
-rm ./main_program
-rm ./CMakeCache.txt
-rm ./cmake_install.cmake
-rm -rf ./CMakeFiles
+rm -f ./startup_program
+rm -f ./main_program
 rm -rf ./breakpoint
 
-mkdir breakpoint
+make clean
+
+mkdir -p breakpoint
 # PADDLE_LIB is the same with FLUID_INSTALL_DIR when building the lib
 cmake .. -DPADDLE_LIB=$PADDLE_LIB \
          -DWITH_MKLDNN=OFF \

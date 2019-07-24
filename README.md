@@ -39,3 +39,8 @@ mkdir build
 cd build
 sh build.sh
 ```
+
+### step 4. use the model to inference
+```
+python mnist_infer.py
+```

@@ -17,7 +17,7 @@ def convolutional_neural_network(input):
     conv1 = fluid.layers.conv2d(input=input,
                                 num_filters=32,
                                 filter_size=3,
-                                stride=1)
+                                stride=1,use_cudnn=False)
 
     pool1 = fluid.layers.pool2d(input=conv1,
                                 pool_size=2,
@@ -27,7 +27,7 @@ def convolutional_neural_network(input):
     conv2 = fluid.layers.conv2d(input=pool1,
                                 num_filters=64,
                                 filter_size=3,
-                                stride=1)
+                                stride=1,use_cudnn=False)
 
     pool2 = fluid.layers.pool2d(input=conv2,
                                 pool_size=2,
@@ -46,6 +46,8 @@ def minist_classfication_network():
 
     cost = fluid.layers.cross_entropy(input=model, label=label)
     avg_cost = fluid.layers.mean(cost)
+    acc = fluid.layers.accuracy(input=model, label=label)
+
 
     optimizer = fluid.optimizer.AdamOptimizer(learning_rate=0.001)
     optimizer.minimize(avg_cost)
@@ -54,7 +56,7 @@ def minist_classfication_network():
 def save_program_desc():
     startup_program = framework.Program()
     train_program = framework.Program()
-
+   
     with framework.program_guard(train_program, startup_program):
         minist_classfication_network()
 
@@ -62,11 +64,6 @@ def save_program_desc():
         f.write(startup_program.desc.serialize_to_string())
     with open("main_program", "w") as f:
         f.write(train_program.desc.serialize_to_string())
-   # print train_program.desc.serialize_to_string()
-
-
-   # print train_program.desc.serialize_to_string()
-
-#def train_network(with_optimize)
+    #print train_program
 save_program_desc()
 

@@ -147,7 +147,7 @@ void ThreadedRunTrain(
   y_tensor->Resize({batch_size, 1});
   auto y_data = y_tensor->mutable_data<int64_t>(paddle::platform::CPUPlace());
   //set X Y value
-  for(int epoch = thread_id; epoch < 100 * num_threads;epoch += num_threads){
+  for(int epoch = thread_id; epoch < 2 * num_threads;epoch += num_threads){
     for(int i = 0;i < batch_size; ++i){
         int index = (i + epoch * batch_size) % labels.size();
         for(int j = 0;j < image_size; ++j){
@@ -155,11 +155,13 @@ void ThreadedRunTrain(
       }
       y_data[i] = static_cast<int64_t>(labels[index]);
    }
-   executor->Run(*train_program, &copy_scope, 0, false, true);
-   /* for(auto& op_desc : train_program->Block(0).AllOps()){
+   // executor->Run(*train_program, &copy_scope, 0,false,true);
+     executor->CreateVariables(*train_program, &copy_scope,0);
+    for(auto& op_desc : train_program->Block(0).AllOps()){
         auto op =paddle::framework:: OpRegistry::CreateOp(*op_desc);
            op->Run(copy_scope,paddle::platform::CPUPlace());
-      }*/
+     }
+
     std::cout << "thread_" << thread_id << "   train loss   :"
               << loss_var->Get<paddle::framework::LoDTensor>().data<float>()[0] 
               << std::endl;
@@ -183,36 +185,26 @@ void SaveModel(const std::string &dir,
   auto *save_block = save_program.MutableBlock(0);
   const paddle::framework::ProgramDesc &main_program = *train_program;
   const paddle::framework::BlockDesc &global_block = main_program.Block(0);
-  std::vector<std::string> save_var_list;
   for (paddle::framework::VarDesc *var : global_block.AllVars()) {
     if (var->Persistable()) {
-      paddle::framework::VarDesc *new_var = save_block->Var(var->Name());
-      new_var->SetShape(var->GetShape());
-      new_var->SetDataType(var->GetDataType());
-      new_var->SetType(var->GetType());
-      new_var->SetLoDLevel(var->GetLoDLevel());
-      new_var->SetPersistable(true);
+	paddle::framework::AttributeMap attrs;
+        attrs.insert({"file_path", dir + "/" + var->Name()});
+        auto save_op = paddle::framework::OpRegistry::CreateOp(
+                    "save", {{"X", {var->Name()}}}, {}, attrs);
 
-      save_var_list.push_back(new_var->Name());
-     }
-   std::cout << var->Name() << std::endl;
+	save_op->Run(*scope, paddle::platform::CPUPlace());
+
+       /* auto *op = save_block->AppendOp();
+        op->SetType("save");
+        op->SetInput("X",{var->Name()});
+        op->SetAttr("file_path", dir +"/"+ var->Name());
+        op->CheckAttrs();
+        op->SetOutput("Out",{});
+   
+        auto op2 =paddle::framework::OpRegistry::CreateOp(*op);
+        op2->Run(*scope, paddle::platform::CPUPlace());*/
+      }
   }
-
- // paddle::platform::CPUPlace place;
- // paddle::framework::Executor exe(place);
- // exe.Run(save_program, scope, 0);
-
-  std::sort(save_var_list.begin(), save_var_list.end());
-  auto *op = save_block->AppendOp();
-  op->SetType("save_combine");
-  op->SetInput("X", save_var_list);
-  op->SetAttr("file_path", dir + "/params");
-  op->CheckAttrs();
-  paddle::platform::CPUPlace place;
-  paddle::framework::Executor exe(place);
-  
-  auto op2 =paddle::framework:: OpRegistry::CreateOp(*op);
-  op2->Run(*scope,paddle::platform::CPUPlace());
 }
 
 int main() {
